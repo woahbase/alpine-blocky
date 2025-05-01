@@ -1,0 +1,69 @@
+#!/usr/bin/with-contenv bash
+set -e
+
+vecho () { if [ "${S6_VERBOSITY:-1}" -gt 0  ]; then echo "[$0] $@"; fi; }
+
+BLOCKY_CONFIG_FILE="${BLOCKY_CONFIG_FILE:-/config/config.yml}";
+BLOCKY_ROOT="${BLOCKY_ROOT:-$(dirname $BLOCKY_CONFIG_FILE)}";
+# BLOCKY_CONFURL="${BLOCKY_CONFURL:-}"; # unset by default, set to enable
+# BLOCKY_CONFDIR="${BLOCKY_CONFDIR:-/config/snippets}"; # unset by default, set to enable
+
+vecho "Ensure configuration directories exist.";
+mkdir -p \
+    "${BLOCKY_ROOT}/lists" \
+    "${BLOCKY_ROOT}/logs";
+
+# fetch config.yml from url if specified
+if [ -n "${BLOCKY_CONFURL}" ];
+then
+    vecho "Fetching config from ${BLOCKY_CONFURL} to ${BLOCKY_CONFIG_FILE}";
+    ret=5; # wait for upto 5x6=30 seconds
+    until wget -qO "${BLOCKY_CONFIG_FILE}.tmp" "${BLOCKY_CONFURL}";
+    do
+        if [[ ret -eq 0 ]];
+        then
+            vecho "Could not fetch from ${BLOCKY_CONFURL}. Exiting.";
+            exit 1;
+        fi;
+        sleep 5;
+        ((ret--));
+    done;
+    case "${BLOCKY_CONFURL}" in
+        *.yml)
+            mv "${BLOCKY_CONFIG_FILE}.tmp" "${BLOCKY_CONFIG_FILE}";
+        ;;
+        *.tar.gz)
+            BLOCKY_CONFDIR="${BLOCKY_CONFDIR:-${BLOCKY_ROOT}/snippets}";
+            mkdir -p "${BLOCKY_CONFDIR}";
+            tar -xzf "${BLOCKY_CONFIG_FILE}.tmp" -C "${BLOCKY_CONFDIR}" || exit 1;
+            rm -f "${BLOCKY_CONFIG_FILE}.tmp";
+            # merged in next step
+        ;;
+    esac;
+fi;
+
+# merge with yq for when config split into multiple files
+if [ -n "${BLOCKY_CONFDIR}" ] && [ -d "${BLOCKY_CONFDIR}" ] \
+&& [ $(find "${BLOCKY_CONFDIR}" -type f -iname '*.yml' | wc -l) -gt 0 ];
+then
+    vecho "Merging files from ${BLOCKY_CONFDIR} into ${BLOCKY_CONFIG_FILE}";
+    files="$(find ${BLOCKY_CONFDIR} -type f -iname '*.yml' 2>/dev/null | sort | tr '\n' ' ')";
+    yq eval-all \
+        '. as $item ireduce ({}; . * $item )' \
+        ${files[@]} \
+        > "${BLOCKY_CONFIG_FILE}.tmp" || exit 1;
+    mv "${BLOCKY_CONFIG_FILE}.tmp" "${BLOCKY_CONFIG_FILE}";
+fi;
+
+# ensure blocky config exists if either of above don't exec
+if [ ! -f "${BLOCKY_CONFIG_FILE}" ];
+then
+    vecho "Using default config for ${BLOCKY_CONFIG_FILE}";
+    cp /defaults/config.yml "${BLOCKY_CONFIG_FILE}";
+fi;
+
+# fix permissions
+vecho "Fixing permissions.";
+chown -R ${S6_USER:-alpine}:${PGID:-1000} \
+    "${BLOCKY_ROOT}" \
+    ;

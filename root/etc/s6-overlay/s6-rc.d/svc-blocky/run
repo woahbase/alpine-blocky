@@ -1,0 +1,14 @@
+#!/usr/bin/with-contenv bash
+set -e
+
+BLOCKY_CONFIG_FILE="${BLOCKY_CONFIG_FILE:-/config/config.yml}";
+BLOCKY_ROOT="${BLOCKY_ROOT:-$(dirname $BLOCKY_CONFIG_FILE)}";
+BLOCKY_ARGS="${BLOCKY_ARGS:- --apiHost 0.0.0.0 --apiPort 4000}";
+
+cd ${BLOCKY_ROOT} || exit 1;
+
+s6-setuidgid ${S6_USER:-alpine} \
+exec \
+    blocky \
+    --config "${BLOCKY_CONFIG_FILE}" \
+    ${BLOCKY_ARGS};
