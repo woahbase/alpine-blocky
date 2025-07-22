@@ -5,13 +5,17 @@ vecho () { if [ "${S6_VERBOSITY:-1}" -gt 0  ]; then echo "[$0] $@"; fi; }
 
 BLOCKY_CONFIG_FILE="${BLOCKY_CONFIG_FILE:-/config/config.yml}";
 BLOCKY_ROOT="${BLOCKY_ROOT:-$(dirname $BLOCKY_CONFIG_FILE)}";
+BLOCKY_LISTSDIR="${BLOCKY_LISTSDIR:-$(dirname $BLOCKY_CONFIG_FILE)/lists}";
+BLOCKY_LOGSDIR="${BLOCKY_LOGSDIR:-$(dirname $BLOCKY_CONFIG_FILE)/logs}";
 # BLOCKY_CONFURL="${BLOCKY_CONFURL:-}"; # unset by default, set to enable
 # BLOCKY_CONFDIR="${BLOCKY_CONFDIR:-/config/snippets}"; # unset by default, set to enable
 
 vecho "Ensure configuration directories exist.";
 mkdir -p \
-    "${BLOCKY_ROOT}/lists" \
-    "${BLOCKY_ROOT}/logs";
+    "${BLOCKY_ROOT}" \
+    "${BLOCKY_LISTSDIR}" \
+    "${BLOCKY_LOGSDIR}" \
+    ;
 
 # fetch config.yml from url if specified
 if [ -n "${BLOCKY_CONFURL}" ];
@@ -55,15 +59,29 @@ then
     mv "${BLOCKY_CONFIG_FILE}.tmp" "${BLOCKY_CONFIG_FILE}";
 fi;
 
+_subst () {
+    sed \
+        -e "s|BLOCKY_ROOT|${BLOCKY_ROOT}|g" \
+        -e "s|BLOCKY_LISTSDIR|${BLOCKY_LISTSDIR}|g" \
+        -e "s|BLOCKY_LOGSDIR|${BLOCKY_LOGSDIR}|g" \
+    $1 > $2;
+}
+
 # ensure blocky config exists if either of above don't exec
 if [ ! -f "${BLOCKY_CONFIG_FILE}" ];
 then
     vecho "Using default config for ${BLOCKY_CONFIG_FILE}";
-    cp /defaults/config.yml "${BLOCKY_CONFIG_FILE}";
+    _subst /defaults/config.yml "${BLOCKY_CONFIG_FILE}";
 fi;
 
 # fix permissions
-vecho "Fixing permissions.";
-chown -R ${S6_USER:-alpine}:${PGID:-1000} \
-    "${BLOCKY_ROOT}" \
-    ;
+if [ -z "${BLOCKY_SKIP_PERMFIX}" ] \
+&& [ "X${EUID}" == "X0" ]; # requires root
+then
+    vecho "Fixing permissions.";
+    chown -R ${S6_USER:-alpine}:${PGID:-1000} \
+        "${BLOCKY_ROOT}" \
+        "${BLOCKY_LISTSDIR}" \
+        "${BLOCKY_LOGSDIR}" \
+        ;
+fi;

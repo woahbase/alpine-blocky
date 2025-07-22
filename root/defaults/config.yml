@@ -71,7 +71,7 @@ blocking:
       - https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
       - http://sysctl.org/cameleon/hosts
       - https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt
-      - /config/lists/denylist.txt
+      - BLOCKY_LISTSDIR/denylist.txt
       - |
         # inline definition with YAML literal block scalar style
         someadsdomain.com
@@ -83,7 +83,7 @@ blocking:
   # If a group has only allowlist entries, only domains from this list are allowed, and all others be blocked.
   allowlists:
     ads:
-      - /config/lists/allowlist.txt
+      - BLOCKY_LISTSDIR/allowlist.txt
       - |
         # inline definition with YAML literal block scalar style
         # hosts format
@@ -206,6 +206,8 @@ prometheus:
 # optional: write query information (question, answer, client, duration etc.) to daily csv file
 queryLog:
   # optional one of: mysql, postgresql, timescale, csv, csv-client. If empty, log to console
+  # type: csv
+  # target: BLOCKY_LOGSDIR
   # type: mysql
   # directory (should be mounted as volume in docker) for csv, db connection string for mysql/postgresql
   # target: db_user:db_password@tcp(db_host_or_ip:3306)/db_name?charset=utf8mb4&parseTime=True&loc=Local
