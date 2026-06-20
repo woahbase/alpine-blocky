@@ -112,6 +112,7 @@ OTHERFLAGS := \
 	-m 256m \
 	-e PGID=$(PGID) \
 	-e PUID=$(PUID) \
+	# -e BLOCKY_CACHEDIR=/config/cache \
 	# -e BLOCKY_CONFIG_FILE=/config/config.yml \
 	# -e BLOCKY_CONFDIR=/config/snippets \
 	# -e BLOCKY_CONFURL="https://0xerr0r.github.io/blocky/latest/config.yml" \

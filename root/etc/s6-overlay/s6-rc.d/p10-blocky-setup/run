@@ -5,6 +5,7 @@ vecho () { if [ "${S6_VERBOSITY:-1}" -gt 0  ]; then echo "[$0] $@"; fi; }
 
 BLOCKY_CONFIG_FILE="${BLOCKY_CONFIG_FILE:-/config/config.yml}";
 BLOCKY_ROOT="${BLOCKY_ROOT:-$(dirname $BLOCKY_CONFIG_FILE)}";
+BLOCKY_CACHEDIR="${BLOCKY_CACHEDIR:-$(dirname $BLOCKY_CONFIG_FILE)/cache}";
 BLOCKY_LISTSDIR="${BLOCKY_LISTSDIR:-$(dirname $BLOCKY_CONFIG_FILE)/lists}";
 BLOCKY_LOGSDIR="${BLOCKY_LOGSDIR:-$(dirname $BLOCKY_CONFIG_FILE)/logs}";
 # BLOCKY_CONFURL="${BLOCKY_CONFURL:-}"; # unset by default, set to enable
@@ -13,6 +14,7 @@ BLOCKY_LOGSDIR="${BLOCKY_LOGSDIR:-$(dirname $BLOCKY_CONFIG_FILE)/logs}";
 vecho "Ensure configuration directories exist.";
 mkdir -p \
     "${BLOCKY_ROOT}" \
+    "${BLOCKY_CACHEDIR}" \
     "${BLOCKY_LISTSDIR}" \
     "${BLOCKY_LOGSDIR}" \
     ;
@@ -62,6 +64,7 @@ fi;
 _subst () {
     sed \
         -e "s|BLOCKY_ROOT|${BLOCKY_ROOT}|g" \
+        -e "s|BLOCKY_CACHEDIR|${BLOCKY_CACHEDIR}|g" \
         -e "s|BLOCKY_LISTSDIR|${BLOCKY_LISTSDIR}|g" \
         -e "s|BLOCKY_LOGSDIR|${BLOCKY_LOGSDIR}|g" \
     $1 > $2;
@@ -81,6 +84,7 @@ then
     vecho "Fixing permissions.";
     chown -R ${S6_USER:-alpine}:${PGID:-1000} \
         "${BLOCKY_ROOT}" \
+        "${BLOCKY_CACHEDIR}" \
         "${BLOCKY_LISTSDIR}" \
         "${BLOCKY_LOGSDIR}" \
         ;
